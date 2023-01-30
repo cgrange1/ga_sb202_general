@@ -54,6 +54,7 @@ ga_data_prep <- function(year) {
   
   #for race imputation
   race_sub <- ga %>% 
+    rename(county_number = county) %>% 
     filter(is.na(RACE_DESC) | RACE_DESC %in% c("Unknown")) #319,802 missing race values in 2022 and 277,805 in 2018
   print(paste0("There are ", nrow(race_sub), " missing race values that need to be imputed."))
   
@@ -97,8 +98,7 @@ wru_prep <- function(year) {
     mutate(GEOID = paste0("13", str_pad(Voters_FIPS, width = 3, side = "left", pad = "0"),
                           str_pad(Residence_Addresses_CensusTract, width = 6, side = "left", pad = "0"),
                           Residence_Addresses_CensusBlockGroup)) %>% 
-    select(unique(colnames(.))) %>% 
-    rename(county_number = county,
+    rename(county2 = County,
            surname = Voters_LastName,
            county = Voters_FIPS,
            tract = Residence_Addresses_CensusTract) %>%
@@ -114,14 +114,16 @@ wru_prep <- function(year) {
   
   wru2 <- filter(l2, block %in% paste0("13", wru_cens$GA$block$county, wru_cens$GA$block$tract, wru_cens$GA$block$block)) 
   wru2$block_full  <- wru2$block
-  wru2$block <- str_wru2(wru2$block_full, start= -4)
-  wru2$tract <- str_wru2(wru2$block_full, 6, 11)
-  wru2$county <- str_wru2(wru2$block_full, 3, 5)
+  wru2$block <- str_sub(wru2$block_full, start= -4)
+  wru2$tract <- str_sub(wru2$block_full, 6, 11)
+  wru2$county <- str_sub(wru2$block_full, 3, 5)
   
   wru2 <- predict_race(voter.file = wru2, census.geo = "block", census.data = wru_cens, year = "2020", surname.year = "2020", 
-                     model = "fBISG", census.key = "4e9d153c1ffead503d41620f242a20e96bc14b66") #312,927 predictions imputed
+                     model = "fBISG", census.key = "4e9d153c1ffead503d41620f242a20e96bc14b66") #312,927 predictions imputed in 22
+  #16460 (6.5%) individual names not matched in 2018
   
-  wru2$max_race <- colnames(wru2[,c("pred.whi","pred.bla", "pred.his", "pred.asi", "pred.oth")])[max.col(wru2[,c("pred.whi","pred.bla", "pred.his", "pred.asi", "pred.oth")], ties.method = "first")]
+  wru2$max_race <- colnames(wru2[,c("pred.whi","pred.bla", "pred.his", "pred.asi", "pred.oth")])[max.col(wru2[,c("pred.whi","pred.bla", "pred.his", "pred.asi", "pred.oth")], 
+                                                                                                         ties.method = "first")]
   wru2 <- wru2 %>% 
     select(voter_id, pred.whi, pred.bla, pred.his, pred.asi, pred.oth, max_race)
   
@@ -135,13 +137,11 @@ wru_prep(year = "18") #write the last 2 numbers of the year (e.g., 18, 20)
 wru_prep(year = "22")
 
 
-ga18 <- left_join(ga18, wru18, by= c("voter_id" = "REGISTRATION_NUMBER"))
-#saveRDS(ga18, "M:/Democracy & Justice/democracy/ga_sb202_general/temp/ga18_wru.rds")
+ga18 <- left_join(ga18, wru18, by = "voter_id")
+saveRDS(ga18, "M:/Democracy & Justice/democracy/ga_sb202_general/temp/ga18_wru.rds")
 
-ga22 <- left_join(ga22, wru22, by= c("voter_id" = "REGISTRATION_NUMBER"))
-#saveRDS(ga22, "M:/Democracy & Justice/democracy/ga_sb202_general/temp/ga22_wru.rds")
-
-
+ga22 <- left_join(ga22, wru22, by = "voter_id")
+saveRDS(ga22, "M:/Democracy & Justice/democracy/ga_sb202_general/temp/ga22_wru.rds")
 
 
 
@@ -149,6 +149,8 @@ ga22 <- left_join(ga22, wru22, by= c("voter_id" = "REGISTRATION_NUMBER"))
 
 
 
+
+#ignore below
 
 
 
