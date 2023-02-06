@@ -85,7 +85,8 @@ wru_prep <- function(year) {
     db18 <- dbConnect(SQLite(), "M:/Democracy & Justice/democracy/voter_file_data/sql_dbs/national_file_post18.db")
     l2 <- dbGetQuery(db18, "SELECT * from GA")
     dbDisconnect(db18)
-    l2 <- left_join(race_sub18, l2, by = c("voter_id" = "Voters_StateVoterID"))
+    l2 <- left_join(race_sub18, l2, by = c("voter_id" = "Voters_StateVoterID")) %>% 
+      rename(county2 = County)
   }
   
   if (year == "22") {
@@ -98,8 +99,7 @@ wru_prep <- function(year) {
     mutate(GEOID = paste0("13", str_pad(Voters_FIPS, width = 3, side = "left", pad = "0"),
                           str_pad(Residence_Addresses_CensusTract, width = 6, side = "left", pad = "0"),
                           Residence_Addresses_CensusBlockGroup)) %>% 
-    rename(county2 = County,
-           surname = Voters_LastName,
+    rename(surname = Voters_LastName,
            county = Voters_FIPS,
            tract = Residence_Addresses_CensusTract) %>%
     mutate(county = str_pad(county, width = 3, side = "left", pad = "0"),
@@ -138,7 +138,7 @@ wru_prep(year = "22")
 
 
 ga18 <- left_join(ga18, wru18, by = "voter_id")
-saveRDS(ga18, "M:/Democracy & Justice/democracy/ga_sb202_general/temp/ga18_wru.rds")
+#saveRDS(ga18, "M:/Democracy & Justice/democracy/ga_sb202_general/temp/ga18_wru.rds")
 
 ga22 <- left_join(ga22, wru22, by = "voter_id")
 saveRDS(ga22, "M:/Democracy & Justice/democracy/ga_sb202_general/temp/ga22_wru.rds")
